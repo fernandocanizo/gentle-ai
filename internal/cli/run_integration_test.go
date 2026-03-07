@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -11,17 +12,29 @@ import (
 	"github.com/gentleman-programming/gentle-ai/internal/system"
 )
 
+// missingBinaryLookPath simulates all installable binaries (engram, gga) as
+// missing while keeping Go available (needed for Linux engram go-install path).
+func missingBinaryLookPath(name string) (string, error) {
+	if name == "go" {
+		return "/usr/local/bin/go", nil
+	}
+	return "", exec.ErrNotFound
+}
+
 func TestRunInstallAppliesFilesystemChanges(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
 	runCommand = func(string, ...string) error { return nil }
+	cmdLookPath = missingBinaryLookPath
 
 	result, err := RunInstall([]string{"--agent", "opencode", "--component", "permissions"}, system.DetectionResult{})
 	if err != nil {
@@ -52,10 +65,13 @@ func TestRunInstallRollsBackOnComponentFailure(t *testing.T) {
 
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
+	cmdLookPath = missingBinaryLookPath
 
 	osUserHomeDir = func() (string, error) { return home, nil }
 	runCommand = func(name string, args ...string) error {
@@ -132,12 +148,15 @@ func TestRunInstallLinuxUbuntuResolvesAptCommands(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
+	cmdLookPath = missingBinaryLookPath
 	recorder := &commandRecorder{}
 	runCommand = recorder.record
 
@@ -167,12 +186,15 @@ func TestRunInstallLinuxArchResolvesPacmanCommands(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
+	cmdLookPath = missingBinaryLookPath
 	recorder := &commandRecorder{}
 	runCommand = recorder.record
 
@@ -198,12 +220,15 @@ func TestRunInstallLinuxUbuntuWithEngramResolvesGoInstallCommand(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
+	cmdLookPath = missingBinaryLookPath
 	recorder := &commandRecorder{}
 	runCommand = recorder.record
 
@@ -238,12 +263,15 @@ func TestRunInstallLinuxArchWithEngramResolvesGoInstallCommand(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
+	cmdLookPath = missingBinaryLookPath
 	recorder := &commandRecorder{}
 	runCommand = recorder.record
 
@@ -287,10 +315,13 @@ func TestRunInstallLinuxRollsBackOnComponentFailure(t *testing.T) {
 
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
+	cmdLookPath = missingBinaryLookPath
 
 	osUserHomeDir = func() (string, error) { return home, nil }
 	runCommand = func(name string, args ...string) error {
@@ -330,12 +361,15 @@ func TestRunInstallLinuxAgentInstallResolvesGoInstallCommand(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
+	cmdLookPath = missingBinaryLookPath
 	recorder := &commandRecorder{}
 	runCommand = recorder.record
 
@@ -368,13 +402,16 @@ func TestRunInstallLinuxVerificationReportsReadyOnSuccess(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
 	runCommand = func(string, ...string) error { return nil }
+	cmdLookPath = missingBinaryLookPath
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	result, err := RunInstall(
@@ -397,13 +434,16 @@ func TestRunInstallLinuxArchVerificationReportsReadyOnSuccess(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
 	runCommand = func(string, ...string) error { return nil }
+	cmdLookPath = missingBinaryLookPath
 
 	detection := linuxDetectionResult(system.LinuxDistroArch, "pacman")
 	result, err := RunInstall(
@@ -471,12 +511,15 @@ func TestRunInstallMacOSStillResolvesBrewCommands(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
+	cmdLookPath = missingBinaryLookPath
 	recorder := &commandRecorder{}
 	runCommand = recorder.record
 
@@ -529,13 +572,16 @@ func TestRunInstallMacOSVerificationMatchesPreLinuxBehavior(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
 	runCommand = func(string, ...string) error { return nil }
+	cmdLookPath = missingBinaryLookPath
 
 	detection := macOSDetectionResult()
 	result, err := RunInstall(
@@ -568,10 +614,13 @@ func TestRunInstallMacOSRollbackStillWorks(t *testing.T) {
 
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
 	})
+	cmdLookPath = missingBinaryLookPath
 
 	osUserHomeDir = func() (string, error) { return home, nil }
 	runCommand = func(name string, args ...string) error {
@@ -601,5 +650,234 @@ func TestRunInstallMacOSRollbackStillWorks(t *testing.T) {
 
 	if string(after) != string(before) {
 		t.Fatalf("macOS settings changed after rollback\nafter=%s\nbefore=%s", after, before)
+	}
+}
+
+// --- Skip-when-installed and Go auto-install tests ---
+
+func TestRunInstallEngramSkipsInstallWhenAlreadyOnPath(t *testing.T) {
+	home := t.TempDir()
+	restoreHome := osUserHomeDir
+	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
+	t.Cleanup(func() {
+		osUserHomeDir = restoreHome
+		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
+	})
+
+	osUserHomeDir = func() (string, error) { return home, nil }
+	// Simulate engram already installed on PATH.
+	cmdLookPath = func(name string) (string, error) {
+		return "/usr/local/bin/" + name, nil
+	}
+	recorder := &commandRecorder{}
+	runCommand = recorder.record
+
+	detection := macOSDetectionResult()
+	result, err := RunInstall(
+		[]string{"--agent", "opencode", "--component", "engram"},
+		detection,
+	)
+	if err != nil {
+		t.Fatalf("RunInstall() error = %v", err)
+	}
+
+	if !result.Verify.Ready {
+		t.Fatalf("verification ready = false")
+	}
+
+	// No brew/go install commands should have been recorded — only agent install.
+	for _, cmd := range recorder.get() {
+		if strings.Contains(cmd, "engram") {
+			t.Fatalf("expected engram install to be skipped, but got command: %s", cmd)
+		}
+	}
+}
+
+func TestRunInstallGGASkipsInstallWhenAlreadyOnPath(t *testing.T) {
+	home := t.TempDir()
+	restoreHome := osUserHomeDir
+	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
+	t.Cleanup(func() {
+		osUserHomeDir = restoreHome
+		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
+	})
+
+	osUserHomeDir = func() (string, error) { return home, nil }
+	cmdLookPath = func(name string) (string, error) {
+		return "/usr/local/bin/" + name, nil
+	}
+	recorder := &commandRecorder{}
+	runCommand = recorder.record
+
+	detection := macOSDetectionResult()
+	result, err := RunInstall(
+		[]string{"--agent", "opencode", "--component", "gga"},
+		detection,
+	)
+	if err != nil {
+		t.Fatalf("RunInstall() error = %v", err)
+	}
+
+	if !result.Verify.Ready {
+		t.Fatalf("verification ready = false")
+	}
+
+	// No brew/git clone commands for GGA should have been recorded.
+	for _, cmd := range recorder.get() {
+		if strings.Contains(cmd, "gga") || strings.Contains(cmd, "gentleman-guardian-angel") {
+			t.Fatalf("expected gga install to be skipped, but got command: %s", cmd)
+		}
+	}
+}
+
+func TestRunInstallEngramAutoInstallsGoWhenMissing(t *testing.T) {
+	home := t.TempDir()
+	restoreHome := osUserHomeDir
+	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
+	t.Cleanup(func() {
+		osUserHomeDir = restoreHome
+		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
+	})
+
+	osUserHomeDir = func() (string, error) { return home, nil }
+	// Simulate: engram missing, Go missing.
+	cmdLookPath = func(string) (string, error) {
+		return "", exec.ErrNotFound
+	}
+	recorder := &commandRecorder{}
+	runCommand = recorder.record
+
+	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
+	result, err := RunInstall(
+		[]string{"--agent", "opencode", "--component", "engram"},
+		detection,
+	)
+	if err != nil {
+		t.Fatalf("RunInstall() error = %v", err)
+	}
+
+	if !result.Verify.Ready {
+		t.Fatalf("verification ready = false")
+	}
+
+	commands := recorder.get()
+	foundGoInstall := false
+	foundEngramInstall := false
+	goInstallIdx := -1
+	engramInstallIdx := -1
+	for i, cmd := range commands {
+		if strings.Contains(cmd, "apt-get install -y golang") {
+			foundGoInstall = true
+			goInstallIdx = i
+		}
+		if strings.Contains(cmd, "go install") && strings.Contains(cmd, "engram") {
+			foundEngramInstall = true
+			engramInstallIdx = i
+		}
+	}
+
+	if !foundGoInstall {
+		t.Fatalf("expected Go auto-install command, got commands: %v", commands)
+	}
+	if !foundEngramInstall {
+		t.Fatalf("expected engram install command, got commands: %v", commands)
+	}
+	if goInstallIdx >= engramInstallIdx {
+		t.Fatalf("Go install (idx=%d) should run before engram install (idx=%d)", goInstallIdx, engramInstallIdx)
+	}
+}
+
+func TestRunInstallEngramSkipsGoInstallWhenGoPresent(t *testing.T) {
+	home := t.TempDir()
+	restoreHome := osUserHomeDir
+	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
+	t.Cleanup(func() {
+		osUserHomeDir = restoreHome
+		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
+	})
+
+	osUserHomeDir = func() (string, error) { return home, nil }
+	// Simulate: engram missing, Go available.
+	cmdLookPath = missingBinaryLookPath
+	recorder := &commandRecorder{}
+	runCommand = recorder.record
+
+	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
+	result, err := RunInstall(
+		[]string{"--agent", "opencode", "--component", "engram"},
+		detection,
+	)
+	if err != nil {
+		t.Fatalf("RunInstall() error = %v", err)
+	}
+
+	if !result.Verify.Ready {
+		t.Fatalf("verification ready = false")
+	}
+
+	// Go install should NOT be in the recorded commands.
+	for _, cmd := range recorder.get() {
+		if strings.Contains(cmd, "apt-get install -y golang") {
+			t.Fatalf("Go should not be installed when already on PATH, got command: %s", cmd)
+		}
+	}
+}
+
+func TestRunInstallEngramBrewSkipsGoCheck(t *testing.T) {
+	home := t.TempDir()
+	restoreHome := osUserHomeDir
+	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
+	t.Cleanup(func() {
+		osUserHomeDir = restoreHome
+		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
+	})
+
+	osUserHomeDir = func() (string, error) { return home, nil }
+	// Simulate: engram missing, Go missing — but brew platform, so no Go needed.
+	cmdLookPath = func(string) (string, error) {
+		return "", exec.ErrNotFound
+	}
+	recorder := &commandRecorder{}
+	runCommand = recorder.record
+
+	detection := macOSDetectionResult()
+	result, err := RunInstall(
+		[]string{"--agent", "opencode", "--component", "engram"},
+		detection,
+	)
+	if err != nil {
+		t.Fatalf("RunInstall() error = %v", err)
+	}
+
+	if !result.Verify.Ready {
+		t.Fatalf("verification ready = false")
+	}
+
+	// Should use brew install, NOT go install, and no Go auto-install.
+	commands := recorder.get()
+	for _, cmd := range commands {
+		if strings.Contains(cmd, "golang") || strings.Contains(cmd, "apt-get") {
+			t.Fatalf("brew platform should not install Go, got command: %s", cmd)
+		}
+	}
+
+	foundBrew := false
+	for _, cmd := range commands {
+		if strings.Contains(cmd, "brew install engram") {
+			foundBrew = true
+		}
+	}
+	if !foundBrew {
+		t.Fatalf("expected brew install engram, got commands: %v", commands)
 	}
 }

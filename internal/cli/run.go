@@ -40,6 +40,7 @@ type InstallResult struct {
 var (
 	osUserHomeDir       = os.UserHomeDir
 	runCommand          = executeCommand
+	cmdLookPath         = exec.LookPath
 	streamCommandOutput = true
 )
 
@@ -309,12 +310,27 @@ func (s componentApplyStep) Run() error {
 
 	switch s.component {
 	case model.ComponentEngram:
-		commands, err := engram.InstallCommand(s.profile)
-		if err != nil {
-			return fmt.Errorf("resolve install command for component %q: %w", s.component, err)
-		}
-		if err := runCommandSequence(commands); err != nil {
-			return err
+		if _, err := cmdLookPath("engram"); err != nil {
+			// Engram not on PATH — install it.
+			// On non-brew platforms (Linux, Windows), Go is required for `go install`.
+			if s.profile.PackageManager != "brew" {
+				if _, err := cmdLookPath("go"); err != nil {
+					goCommands := system.InstallCommandsForDep("go", s.profile)
+					if goCommands == nil {
+						return fmt.Errorf("go is required to install engram but cannot be auto-installed on this platform")
+					}
+					if err := runCommandSequence(goCommands); err != nil {
+						return fmt.Errorf("install go (required for engram): %w", err)
+					}
+				}
+			}
+			commands, err := engram.InstallCommand(s.profile)
+			if err != nil {
+				return fmt.Errorf("resolve install command for component %q: %w", s.component, err)
+			}
+			if err := runCommandSequence(commands); err != nil {
+				return err
+			}
 		}
 		for _, adapter := range adapters {
 			if _, err := engram.Inject(s.homeDir, adapter); err != nil {
@@ -362,12 +378,15 @@ func (s componentApplyStep) Run() error {
 		}
 		return nil
 	case model.ComponentGGA:
-		commands, err := gga.InstallCommand(s.profile)
-		if err != nil {
-			return fmt.Errorf("resolve install command for component %q: %w", s.component, err)
-		}
-		if err := runCommandSequence(commands); err != nil {
-			return err
+		if _, err := cmdLookPath("gga"); err != nil {
+			// GGA not on PATH — install it.
+			commands, err := gga.InstallCommand(s.profile)
+			if err != nil {
+				return fmt.Errorf("resolve install command for component %q: %w", s.component, err)
+			}
+			if err := runCommandSequence(commands); err != nil {
+				return err
+			}
 		}
 		if _, err := gga.Inject(s.homeDir, s.agents); err != nil {
 			return fmt.Errorf("inject gga config: %w", err)
