@@ -2,6 +2,7 @@ package installcmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/gentleman-programming/gentle-ai/internal/model"
 	"github.com/gentleman-programming/gentle-ai/internal/system"
@@ -37,6 +38,7 @@ func (profileResolver) ResolveAgentInstall(profile system.PlatformProfile, agent
 
 // resolveClaudeCodeInstall returns the npm install command sequence for Claude Code.
 // On Linux with system npm, sudo is required. With nvm/fnm/volta, it is not.
+// On Windows and macOS, sudo is never needed.
 func resolveClaudeCodeInstall(profile system.PlatformProfile) CommandSequence {
 	if profile.OS == "linux" && !profile.NpmWritable {
 		return CommandSequence{{"sudo", "npm", "install", "-g", "@anthropic-ai/claude-code"}}
@@ -67,6 +69,8 @@ func (profileResolver) ResolveDependencyInstall(profile system.PlatformProfile, 
 		return CommandSequence{{"sudo", "apt-get", "install", "-y", dependency}}, nil
 	case "pacman":
 		return CommandSequence{{"sudo", "pacman", "-S", "--noconfirm", dependency}}, nil
+	case "winget":
+		return CommandSequence{{"winget", "install", "--id", dependency, "-e", "--accept-source-agreements", "--accept-package-agreements"}}, nil
 	default:
 		return nil, fmt.Errorf(
 			"unsupported package manager %q for os=%q distro=%q",
@@ -92,6 +96,9 @@ func resolveOpenCodeInstall(profile system.PlatformProfile) (CommandSequence, er
 			return CommandSequence{{"npm", "install", "-g", "opencode-ai"}}, nil
 		}
 		return CommandSequence{{"sudo", "npm", "install", "-g", "opencode-ai"}}, nil
+	case "winget":
+		// On Windows, npm global installs do not require sudo.
+		return CommandSequence{{"npm", "install", "-g", "opencode-ai"}}, nil
 	default:
 		return nil, fmt.Errorf(
 			"unsupported platform for opencode: os=%q distro=%q pm=%q",
@@ -115,6 +122,12 @@ func resolveGGAInstall(profile system.PlatformProfile) (CommandSequence, error) 
 			{"git", "clone", "https://github.com/Gentleman-Programming/gentleman-guardian-angel.git", "/tmp/gentleman-guardian-angel"},
 			{"bash", "/tmp/gentleman-guardian-angel/install.sh"},
 		}, nil
+	case "winget":
+		// On Windows, use Git Bash (bundled with Git for Windows) to run the install script.
+		return CommandSequence{
+			{"git", "clone", "https://github.com/Gentleman-Programming/gentleman-guardian-angel.git", os.TempDir() + "\\gentleman-guardian-angel"},
+			{"bash", os.TempDir() + "\\gentleman-guardian-angel\\install.sh"},
+		}, nil
 	default:
 		return nil, fmt.Errorf(
 			"unsupported platform for gga: os=%q distro=%q pm=%q",
@@ -135,6 +148,9 @@ func resolveEngramInstall(profile system.PlatformProfile) (CommandSequence, erro
 		}, nil
 	case "apt", "pacman":
 		return CommandSequence{{"env", "CGO_ENABLED=0", "go", "install", "github.com/Gentleman-Programming/engram/cmd/engram@latest"}}, nil
+	case "winget":
+		// On Windows, use go install (Engram has no winget package yet).
+		return CommandSequence{{"go", "install", "github.com/Gentleman-Programming/engram/cmd/engram@latest"}}, nil
 	default:
 		return nil, fmt.Errorf(
 			"unsupported platform for engram: os=%q distro=%q pm=%q",

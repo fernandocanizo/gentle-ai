@@ -1,6 +1,7 @@
 package installcmd
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
@@ -35,6 +36,12 @@ func TestResolveDependencyInstall(t *testing.T) {
 			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroArch, PackageManager: "pacman"},
 			dep:     "somepkg",
 			want:    CommandSequence{{"sudo", "pacman", "-S", "--noconfirm", "somepkg"}},
+		},
+		{
+			name:    "windows resolves winget command",
+			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget"},
+			dep:     "somepkg",
+			want:    CommandSequence{{"winget", "install", "--id", "somepkg", "-e", "--accept-source-agreements", "--accept-package-agreements"}},
 		},
 		{
 			name:    "unsupported package manager returns error",
@@ -127,6 +134,18 @@ func TestResolveAgentInstall(t *testing.T) {
 			want:    CommandSequence{{"sudo", "npm", "install", "-g", "opencode-ai"}},
 		},
 		{
+			name:    "claude-code on windows uses npm without sudo",
+			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget", NpmWritable: true},
+			agent:   model.AgentClaudeCode,
+			want:    CommandSequence{{"npm", "install", "-g", "@anthropic-ai/claude-code"}},
+		},
+		{
+			name:    "opencode on windows uses npm without sudo",
+			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget"},
+			agent:   model.AgentOpenCode,
+			want:    CommandSequence{{"npm", "install", "-g", "opencode-ai"}},
+		},
+		{
 			name:    "unsupported agent returns error",
 			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
 			agent:   "unsupported",
@@ -202,6 +221,21 @@ func TestResolveComponentInstall(t *testing.T) {
 			want: CommandSequence{
 				{"git", "clone", "https://github.com/Gentleman-Programming/gentleman-guardian-angel.git", "/tmp/gentleman-guardian-angel"},
 				{"bash", "/tmp/gentleman-guardian-angel/install.sh"},
+			},
+		},
+		{
+			name:      "engram on windows uses go install",
+			profile:   system.PlatformProfile{OS: "windows", PackageManager: "winget"},
+			component: model.ComponentEngram,
+			want:      CommandSequence{{"go", "install", "github.com/Gentleman-Programming/engram/cmd/engram@latest"}},
+		},
+		{
+			name:      "gga on windows uses git clone and bash via temp dir",
+			profile:   system.PlatformProfile{OS: "windows", PackageManager: "winget"},
+			component: model.ComponentGGA,
+			want: CommandSequence{
+				{"git", "clone", "https://github.com/Gentleman-Programming/gentleman-guardian-angel.git", os.TempDir() + "\\gentleman-guardian-angel"},
+				{"bash", os.TempDir() + "\\gentleman-guardian-angel\\install.sh"},
 			},
 		},
 		{

@@ -97,16 +97,22 @@ func (a *Adapter) MCPConfigPath(homeDir string, _ string) string {
 }
 
 func (a *Adapter) vscodeUserDir(homeDir string) string {
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 		return filepath.Join(homeDir, "Library", "Application Support", "Code", "User")
+	case "windows":
+		appData := os.Getenv("APPDATA")
+		if appData == "" {
+			appData = filepath.Join(homeDir, "AppData", "Roaming")
+		}
+		return filepath.Join(appData, "Code", "User")
+	default:
+		xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
+		if xdgConfigHome == "" {
+			xdgConfigHome = filepath.Join(homeDir, ".config")
+		}
+		return filepath.Join(xdgConfigHome, "Code", "User")
 	}
-
-	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
-	if xdgConfigHome == "" {
-		xdgConfigHome = filepath.Join(homeDir, ".config")
-	}
-
-	return filepath.Join(xdgConfigHome, "Code", "User")
 }
 
 // --- Optional capabilities ---
