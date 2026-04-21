@@ -96,10 +96,22 @@ func TestDefaultRegistryIncludesAllAgents(t *testing.T) {
 		model.AgentVSCodeCopilot,
 		model.AgentCodex,
 		model.AgentWindsurf,
+		model.AgentPi,
 	} {
 		if _, ok := registry.Get(agent); !ok {
 			t.Fatalf("registry missing %s adapter", agent)
 		}
+	}
+}
+
+func TestPiAbsentFromMVPRegistry(t *testing.T) {
+	registry, err := NewMVPRegistry()
+	if err != nil {
+		t.Fatalf("NewMVPRegistry() returned error: %v", err)
+	}
+
+	if _, ok := registry.Get(model.AgentPi); ok {
+		t.Fatal("MVP registry should NOT contain Pi adapter")
 	}
 }
 

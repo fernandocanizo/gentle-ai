@@ -9,6 +9,7 @@ import (
 	cursoradapter "github.com/gentleman-programming/gentle-ai/internal/agents/cursor"
 	"github.com/gentleman-programming/gentle-ai/internal/agents/gemini"
 	"github.com/gentleman-programming/gentle-ai/internal/agents/opencode"
+	piadapter "github.com/gentleman-programming/gentle-ai/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/internal/agents/vscode"
 	"github.com/gentleman-programming/gentle-ai/internal/agents/windsurf"
 	"github.com/gentleman-programming/gentle-ai/internal/model"
@@ -32,6 +33,8 @@ func NewAdapter(agent model.AgentID) (Adapter, error) {
 		return antigravity.NewAdapter(), nil
 	case model.AgentWindsurf:
 		return windsurf.NewAdapter(), nil
+	case model.AgentPi:
+		return piadapter.NewAdapter(), nil
 	default:
 		return nil, AgentNotSupportedError{Agent: agent}
 	}
@@ -49,6 +52,7 @@ func NewDefaultRegistry() (*Registry, error) {
 		model.AgentCodex,
 		model.AgentAntigravity,
 		model.AgentWindsurf,
+		model.AgentPi,
 	} {
 		adapter, err := NewAdapter(agent)
 		if err != nil {

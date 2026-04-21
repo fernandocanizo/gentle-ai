@@ -2,11 +2,11 @@
 schema: spec-driven
 
 context: |
-  Tech stack: Go 1.24, Bubbletea TUI (charmbracelet/bubbletea v1.3.4), lipgloss v1.0.0
-  Architecture: cmd/ entrypoints, internal/ packages (agents, tui, model, pipeline, catalog, system, planner, verify, update, opencode, installcmd, cli, app, components, state, backup, assets)
-  Feature branch: feature/agent-builder — TUI flow for creating custom AI sub-agents from the installer
+  Tech stack: Go 1.24.2, Bubbletea TUI (charmbracelet/bubbletea v1.3.10), lipgloss v1.1.0
+  Architecture: cmd/ entrypoints, internal/ packages (agents, tui, model, pipeline, catalog, system, planner, verify, update, opencode, installcmd, cli, app, components, state, backup, assets, agentbuilder)
   Agents: multi-agent support (claude, opencode, cursor, codex, gemini, vscode, windsurf, antigravity)
   Skills catalog: internal/catalog/skills.go — known skill registry
+  Agent builder: internal/agentbuilder/ — engine, installer, parser, prompt, registry, sdd types
   Build: goreleaser (.goreleaser.yaml), CI: GitHub Actions (ci.yml, pr-check.yml, release.yml)
   Style: gofmt (standard), go vet, no golangci-lint config found
 
@@ -41,7 +41,7 @@ rules:
 
 testing:
   strict_tdd: true
-  detected: "2026-04-03"
+  detected: "2026-04-13"
 
   runner:
     command: "go test ./..."
@@ -70,8 +70,10 @@ testing:
 
   quality:
     linter:
-      available: false
-      note: "No golangci-lint config found; go vet is available"
+      available: true
+      command: "golangci-lint run"
+      version: "v2.11.4"
+      note: "Installed system-wide; no .golangci.yaml config file yet"
     type_checker:
       available: true
       command: "go vet ./..."
